@@ -2,6 +2,8 @@ import { useState, type FormEvent } from "react";
 import { Navigate, Link } from "react-router";
 import { useAuth } from "../../contexts/authContext";
 import { doCreateUserWithEmailAndPassword } from "../../firebase/auth";
+import { setDoc, doc } from "firebase/firestore";
+import { auth, db } from "../../firebase/firebase";
 
 const Register = () => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -36,11 +38,20 @@ const Register = () => {
     if (!isRegistering) {
       setIsRegistering(true);
       setErrorMessage("");
-      await doCreateUserWithEmailAndPassword(email, password)
-        .then(() => {})
-        .finally(() => {
+      try {
+        await doCreateUserWithEmailAndPassword(email, password).finally(() => {
           setIsRegistering(false);
         });
+        const user = auth.currentUser;
+        if (user) {
+          await setDoc(doc(db, "Users", user.uid), {
+            name: name,
+          });
+        }
+        console.log("User reg succesfully");
+      } catch (error) {
+        console.log(error)
+      }
     }
   };
 

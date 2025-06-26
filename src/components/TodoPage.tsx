@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import { useAuth } from "../contexts/authContext";
 import { doSignOut } from "../firebase/auth";
 import { useNavigate } from "react-router";
+import { auth, db } from "../firebase/firebase";
+import { doc, getDoc, type DocumentData } from "firebase/firestore";
 
 interface Todo {
   id: number;
@@ -15,9 +17,28 @@ export const TodoPage: React.FC = () => {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [newTitle, setNewTitle] = useState("");
   const [newDescription, setNewDescription] = useState("");
-  const { curentUser, userLoggedIn } = useAuth();
+  const [userDetails, setUserDetails] = useState<null | DocumentData>(null);
+  const { userLoggedIn } = useAuth();
 
   const navigate = useNavigate();
+
+  const fetchUserData = async () => {
+    auth.onAuthStateChanged(async (user) => {
+      console.log(user);
+      const docRef = doc(db, "Users", user.uid);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        setUserDetails(docSnap.data());
+        console.log(docSnap.data());
+      } else {
+        console.log("User is not logged in");
+      }
+    });
+  };
+
+  useEffect(() => {
+    fetchUserData();
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,9 +72,9 @@ export const TodoPage: React.FC = () => {
 
   useEffect(() => {
     if (!userLoggedIn) {
-      navigate('/')
+      navigate("/");
     }
-  }, [userLoggedIn])
+  }, [userLoggedIn]);
 
   const updateTodo = (
     id: number,
@@ -84,7 +105,7 @@ export const TodoPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
-      <h1 onClick={() => doSignOut()}>Hello {curentUser?.email}</h1>
+      <h1 onClick={() => doSignOut()}>Hello, {userDetails?.name}</h1>
       <div className="max-w-xl mx-auto bg-white rounded-2xl shadow-lg p-6">
         <h1 className="text-3xl font-bold mb-4 text-center">My Todo List</h1>
 
